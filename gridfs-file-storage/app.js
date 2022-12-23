@@ -9,8 +9,10 @@ const multer = require('multer');
 const GridFsStorage = require('multer-gridfs-storage');
 const crypto = require('crypto');
 const cors = require('cors');
+const listEndpoints = require('express-list-endpoints')
 
 const imageRouter = require('./routes/image');
+const videoRouter = require('./routes/video');
 
 const app = express();
 
@@ -42,9 +44,11 @@ connect.then(() => {
 /* 
     GridFs Configuration
 */
-
+var listener = app.listen(3000, function(){
+    console.log('Listening on port ' + listener.address().port); //Listening on port 3000
+});
 // create storage engine
-const storage = new GridFsStorage({
+const imageStorage = new GridFsStorage({
     url: config.mongoURI,
     file: (req, file) => {
         return new Promise((resolve, reject) => {
@@ -55,7 +59,7 @@ const storage = new GridFsStorage({
                 const filename = buf.toString('hex') + path.extname(file.originalname);
                 const fileInfo = {
                     filename: filename,
-                    bucketName: 'uploads'
+                    bucketName: 'images'
                 };
                 resolve(fileInfo);
             });
@@ -63,9 +67,31 @@ const storage = new GridFsStorage({
     }
 });
 
-const upload = multer({ storage });
+// create storage engine
+const videoStorage = new GridFsStorage({
+  url: config.mongoURI,
+  file: (req, file) => {
+      return new Promise((resolve, reject) => {
+          crypto.randomBytes(16, (err, buf) => {
+              if (err) {
+                  return reject(err);
+              }
+              const filename = buf.toString('hex') + path.extname(file.originalname);
+              const fileInfo = {
+                  filename: filename,
+                  bucketName: 'images'
+              };
+              resolve(fileInfo);
+          });
+      });
+  }
+});
 
-app.use('/', imageRouter(upload));
+const imageUpload = multer({ imageStorage });
+const videUpload = multer({ videoStorage });
+
+app.use('/image', imageRouter(imageUpload));
+app.use('/video', videoRouter(videUpload));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -82,5 +108,21 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+app.route('/')
+.all(function namedMiddleware(req, res) {
+  // Handle request
+})
+.get(function(req, res) {
+  // Handle request
+})
+.post(function(req, res) {
+  // Handle request
+});
 
+app.route('/about')
+.get(function(req, res) {
+  // Handle request
+});
+
+console.log(listEndpoints(app));
 module.exports = app;

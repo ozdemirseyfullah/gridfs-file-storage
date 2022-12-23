@@ -1,7 +1,7 @@
 const express = require('express');
-const imageRouter = express.Router();
+const videoRouter = express.Router();
 const mongoose = require('mongoose');
-const Image = require('../models/image');
+const Video = require('../models/video');
 const config = require('../config');
 
 module.exports = (upload) => {
@@ -13,39 +13,39 @@ module.exports = (upload) => {
     connect.once('open', () => {
         // initialize stream
         gfs = new mongoose.mongo.GridFSBucket(connect.db, {
-            bucketName: "uploads"
+            bucketName: "videos"
         });
     });
 
     /*
         POST: Upload a single image/file to Image collection
     */
-    imageRouter.route('/')
+    videoRouter.route('/')
         .post(upload.single('file'), (req, res, next) => {
             console.log(req.body);
             // check for existing images
-            Image.findOne({ caption: req.body.caption })
-                .then((image) => {
-                    console.log(image);
-                    if (image) {
+            Video.findOne({ caption: req.body.caption })
+                .then((video) => {
+                    console.log(video);
+                    if (video) {
                         return res.status(200).json({
                             success: false,
-                            message: 'Image already exists',
+                            message: 'Video already exists',
                         });
                     }
 
-                    let newImage = new Image({
+                    let newVideo= new Video({
                         caption: req.body.caption,
                         filename: req.file.filename,
                         fileId: req.file.id,
                     });
 
-                    newImage.save()
-                        .then((image) => {
+                    newVideo.save()
+                        .then((video) => {
 
                             res.status(200).json({
                                 success: true,
-                                image,
+                                video,
                             });
                         })
                         .catch(err => res.status(500).json(err));
@@ -53,25 +53,25 @@ module.exports = (upload) => {
                 .catch(err => res.status(500).json(err));
         })
         .get((req, res, next) => {
-            Image.find({})
-                .then(images => {
+            Video.find({})
+                .then(videos => {
                     res.status(200).json({
                         success: true,
-                        images,
+                        videos,
                     });
                 })
                 .catch(err => res.status(500).json(err));
         });
 
     /*
-        GET: Delete an image from the collection
+        GET: Delete an video from the collection
     */
-    imageRouter.route('/delete/:id')
+    videoRouter.route('/video/delete/:id')
         .get((req, res, next) => {
-            Image.findOne({ _id: req.params.id })
-                .then((image) => {
-                    if (image) {
-                        Image.deleteOne({ _id: req.params.id })
+            Video.findOne({ _id: req.params.id })
+                .then((video) => {
+                    if (video) {
+                        Video.deleteOne({ _id: req.params.id })
                             .then(() => {
                                 return res.status(200).json({
                                     success: true,
@@ -92,13 +92,13 @@ module.exports = (upload) => {
     /*
         GET: Fetch most recently added record
     */
-    imageRouter.route('/recent')
+    videoRouter.route('/video/recent')
         .get((req, res, next) => {
-            Image.findOne({}, {}, { sort: { '_id': -1 } })
-                .then((image) => {
+            Video.findOne({}, {}, { sort: { '_id': -1 } })
+                .then((video) => {
                     res.status(200).json({
                         success: true,
-                        image,
+                        video,
                     });
                 })
                 .catch(err => res.status(500).json(err));
@@ -107,7 +107,7 @@ module.exports = (upload) => {
     /*
         POST: Upload multiple files upto 3
     */
-    imageRouter.route('/multiple')
+    videoRouter.route('/video/multiple')
         .post(upload.array('file', 3), (req, res, next) => {
             res.status(200).json({
                 success: true,
@@ -118,7 +118,7 @@ module.exports = (upload) => {
     /*
         GET: Fetches all the files in the uploads collection
     */
-    imageRouter.route('/files')
+    videoRouter.route('/video/files')
         .get((req, res, next) => {
             gfs.find().toArray((err, files) => {
                 if (!files || files.length === 0) {
@@ -146,7 +146,7 @@ module.exports = (upload) => {
     /*
         GET: Fetches a particular file by filename
     */
-    imageRouter.route('/file/:filename')
+    videoRouter.route('/video/:filename')
         .get((req, res, next) => {
             gfs.find({ filename: req.params.filename }).toArray((err, files) => {
                 if (!files[0] || files.length === 0) {
@@ -164,9 +164,9 @@ module.exports = (upload) => {
         });
 
     /* 
-        GET: Fetches a particular image and render on browser
+        GET: Fetches a particular video and render on browser
     */
-    imageRouter.route('/image/:filename')
+    videoRouter.route('/video/:filename')
         .get((req, res, next) => {
             gfs.find({ filename: req.params.filename }).toArray((err, files) => {
                 if (!files[0] || files.length === 0) {
@@ -190,7 +190,7 @@ module.exports = (upload) => {
     /*
         DELETE: Delete a particular file by an ID
     */
-    imageRouter.route('/file/del/:id')
+    videoRouter.route('/video/del/:id')
         .post((req, res, next) => {
             console.log(req.params.id);
             gfs.delete(new mongoose.Types.ObjectId(req.params.id), (err, data) => {
@@ -205,5 +205,5 @@ module.exports = (upload) => {
             });
         });
 
-    return imageRouter;
+    return videoRouter;
 };
